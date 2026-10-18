@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f7f5">
+<title>作文批改</title>
+<link rel="stylesheet" href="/static/css/style.css?v=20261005d">
+</head>
+<body>
+
+{% if needs_setup %}
+<!-- ========== 未设口令：整站锁定，提示去终端设置 ========== -->
+<div class="login-overlay" id="setupOverlay">
+  <div class="login-box">
+    <div class="login-icon">🔐</div>
+    <h2 class="login-title">还没有设置访问口令</h2>
+    <p class="login-sub">请到运行本程序的终端里执行：<br><code>sh setup.sh</code><br>按提示设置口令后刷新本页</p>
+  </div>
+</div>
+{% elif needs_auth %}
+<!-- ========== 登录遮罩 ========== -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-icon">📝</div>
+    <h2 class="login-title">作文批改</h2>
+    <p class="login-sub">请输入访问口令</p>
+    <input class="input login-input" id="loginPw" type="password" placeholder="口令" autofocus>
+    <div class="login-error hidden" id="loginErr">口令不正确，重试</div>
+    <button class="btn primary wide" id="btnLogin">进入</button>
+  </div>
+</div>
+{% endif %}
+
+<header class="topbar">
+  <div class="brand">📝 作文批改</div>
+  <div class="top-actions">
+    <button class="btn ghost" id="btnNew">＋ 新建</button>
+    <button class="btn ghost icon" id="btnCfg" title="设置">⚙️</button>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- ========== 列表 ========== -->
+  <section class="view" id="view-list">
+    <div class="list-toolbar">
+      <button class="btn ghost" id="btnAnalyze">📊 AI 学情分析</button>
+    </div>
+    <div class="cards" id="list"></div>
+    <div class="empty" id="empty">还没有作文<br><span class="muted">点右上角「＋ 新建」开始</span></div>
+  </section>
+
+  <!-- ========== AI 学情分析 ========== -->
+  <section class="view hidden" id="view-analyze">
+    <div class="detail-head">
+      <button class="btn ghost" id="btnBackAnalyze">‹ 返回</button>
+    </div>
+    <div id="analyzeLoading" class="analyze-loading hidden">
+      <div class="spinner"></div>
+      <div class="muted">AI 正在分析所有已批改作文…</div>
+    </div>
+    <div id="analyzeError" class="analyze-error hidden"></div>
+    <div id="analyzeResult" class="hidden">
+      <div class="card">
+        <div class="card-head"><span class="lbl">📋 整体概述</span></div>
+        <div class="essay-text" id="anOverview"></div>
+        <div class="muted small" id="anCount"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="lbl">🔍 共性问题</span></div>
+        <div id="anProblems"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="lbl">⭐ 精品作文</span></div>
+        <div id="anExcellent"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="lbl">⚠️ 需要关注</span></div>
+        <div id="anNeedsWork"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="lbl">💡 教学建议</span></div>
+        <div id="anTips"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 新建 ========== -->
+  <section class="view hidden" id="view-new">
+    <div class="detail-head">
+      <button class="btn ghost" id="btnBackNew">‹ 返回</button>
+      <button class="btn ghost danger" id="btnDropAll">清空</button>
+    </div>
+    <div class="card">
+      <label class="lbl">作文标题 <span class="muted small">（可留空，AI 识别时会自动填）</span></label>
+      <input class="input" id="inpTitle" placeholder="例如：那一次，我长大了">
+    </div>
+
+    <div class="card">
+      <label class="lbl">文章类别 <span class="muted small">（选文体，AI 按对应文体的要求批改）</span></label>
+      <div class="pick" id="catPick">
+        <button class="btn tiny on" data-cat="">🤔 让 AI 自己判断</button>
+        <button class="btn tiny" data-cat="记叙文">记叙文</button>
+        <button class="btn tiny" data-cat="议论文">议论文</button>
+        <button class="btn tiny" data-cat="说明文">说明文</button>
+        <button class="btn tiny" data-cat="散文">散文</button>
+        <button class="btn tiny" data-cat="书信">书信</button>
+        <button class="btn tiny" data-cat="读后感">读后感</button>
+        <button class="btn tiny" data-cat="演讲稿">演讲稿</button>
+        <button class="btn tiny" data-cat="想象作文">想象作文</button>
+        <button class="btn tiny" data-cat="其他">其他</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label class="lbl">① 📋 考试作文题目 <span class="muted small">（卷子上那道完整题目）</span></label>
+      <textarea class="textarea" id="inpPrompt" rows="5"
+        placeholder="可以手打，也可以只拍一张题目图，AI 会自己读。&#10;例如：&#10;阅读下面的材料，按要求作文。（材料全文）&#10;请以《那一刻，我长大了》为题，写一篇不少于 600 字的记叙文。"></textarea>
+      <div class="pick">
+        <button class="btn" id="btnPromptCam">📷 拍题目图</button>
+        <button class="btn" id="btnPromptAlbum">🖼 选题目图</button>
+        <input type="file" id="filePromptCam" accept="image/*" capture="environment" hidden>
+        <input type="file" id="filePromptAlbum" accept="image/*" hidden>
+      </div>
+      <div class="preview hidden" id="promptPreviewWrap">
+        <img id="promptPreview" alt="题目图预览">
+        <button class="btn tiny ghost" id="btnDropPromptImg">移除</button>
+      </div>
+      <div class="count"><span id="promptCount">0</span> 字</div>
+    </div>
+
+    <div class="card">
+      <label class="lbl">② 📷 作文纸照片 <span class="muted small">（可多张，按作文顺序）</span></label>
+      <div class="pick">
+        <button class="btn primary" id="btnCamera">📷 拍照</button>
+        <button class="btn" id="btnAlbum">🖼 选图（可多选）</button>
+        <input type="file" id="fileCamera" accept="image/*" capture="environment" hidden>
+        <input type="file" id="fileAlbum" accept="image/*" multiple hidden>
+      </div>
+      <div class="grid hidden" id="pageGrid"></div>
+      <div class="muted small" id="pageHint">还没有照片。拍一张或选几张，AI 会按顺序识别。</div>
+    </div>
+
+    <div class="card">
+      <label class="lbl">③ 📝 或上传作文文档
+        <span class="muted small">（.docx / .doc / .txt，正文直接从文件里读，不用拍照也不用识别）</span></label>
+      <div class="pick">
+        <button class="btn" id="btnDocx">📝 选文档（.doc / .docx / .txt）</button>
+        <input type="file" id="fileDocx" accept=".doc,.docx,.txt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" hidden>
+      </div>
+      <div id="docxBox" class="docx-box hidden">
+        <span class="docx-ico">📝</span>
+        <span id="docxName" class="docx-name"></span>
+        <button class="btn tiny ghost" id="btnDropDocx">移除</button>
+      </div>
+      <div class="muted small" id="docxHint">有电子稿最省事：正文直接从文档里读，AI 只做批改。</div>
+    </div>
+
+    <div class="card soft">
+      <div class="note-hint">🤖 <b>正文不用自己打。</b>有电子稿（.docx / 老 .doc / 记事本 .txt）就直接传，正文从文件里读；
+        只有照片也没关系，保存后点「让 AI 老师批改」，AI 会先从照片把作文抄出来再评分。
+        两种都能在详情页改正文。</div>
+    </div>
+
+    <div class="sticky-actions">
+      <button class="btn primary wide" id="btnSave">保存</button>
+    </div>
+  </section>
+
+  <!-- ========== 详情 ========== -->
+  <section class="view hidden" id="view-detail">
+    <div class="detail-head">
+      <button class="btn ghost" id="btnBack">‹ 返回</button>
+      <button class="btn ghost danger" id="btnDel">删除</button>
+    </div>
+
+    <h1 class="essay-title" id="dTitle"></h1>
+    <div class="muted small" id="dMeta"></div>
+
+    <!-- 三栏排版容器：手机单栏（order 保序），桌面 ≥1100px 三栏（左=素材 中=两篇作文 右=批改） -->
+    <div class="detail-cols">
+      <div class="col col-left">
+    <div class="card collapsible" id="promptCard">
+      <button class="collapse-head" id="btnTogglePrompt">
+        <span>📋 考试作文题目</span><span class="chev">▾</span>
+      </button>
+      <div class="collapse-body hidden" id="promptBody">
+        <div class="essay-text prompt-text" id="dPrompt"></div>
+        <img id="dPromptImage" alt="题目原图">
+      </div>
+    </div>
+
+    <div class="card collapsible" id="imgCard">
+      <button class="collapse-head" id="btnToggleImg">
+        <span>📄 作文纸照片 <span class="muted small" id="dImgCount"></span></span><span class="chev">▾</span>
+      </button>
+      <div class="collapse-body hidden" id="imgBody">
+        <div class="pages" id="dImages"></div>
+      </div>
+    </div>
+
+    <!-- 成绩区（分数/扣题/四维度/扣分/字数）—— 桌面左栏，跟材料放一起 -->
+    <div id="scoreArea"></div>
+      </div><!-- /col-left -->
+
+      <div class="col col-mid">
+    <div class="card" id="textCard">
+      <div class="card-head">
+        <span class="lbl">📖 识别出的正文 <span class="muted small">（AI 从照片抄的，认错了可以改）</span></span>
+        <span class="head-actions">
+          <button class="btn tiny ghost" id="btnToggleAnn">🔴 批注</button>
+          <button class="btn tiny ghost" id="btnEdit">编辑</button>
+        </span>
+      </div>
+      <div class="essay-text" id="dText"></div>
+      <!-- 批注面板：放在正文下方而不是浮层 —— 浮层会盖住后面的标红句子 -->
+      <div class="ann-panel hidden" id="annPanel"></div>
+      <textarea class="textarea hidden" id="dEditText" rows="10"></textarea>
+      <div class="edit-actions hidden" id="editActions">
+        <button class="btn primary" id="btnSaveEdit">保存修改</button>
+        <button class="btn ghost" id="btnCancelEdit">取消</button>
+      </div>
+      <div class="muted small">改过正文后再批改，会<b>按你改的</b>来评，不会被 AI 识别覆盖。</div>
+    </div>
+
+    <!-- 修改后全文 + 下载按钮（桌面在中栏，跟在原文后面） -->
+    <div id="revisedArea"></div>
+      </div><!-- /col-mid -->
+
+      <div class="col col-right">
+    <div class="card" id="reviseCard">
+      <button class="btn primary wide" id="btnRevise">✨ 让 AI 老师批改</button>
+      <div class="muted small center" id="reviseHint"></div>
+    </div>
+
+    <div id="resultArea"></div>
+
+    <!-- ========== 继续追问（批改完接着问老师） ========== -->
+    <div class="card" id="qaCard">
+      <div class="card-head">
+        <span class="lbl">💬 继续追问 <span class="muted small">（没看懂的接着问）</span></span>
+        <span class="head-actions">
+          <button class="btn tiny ghost" id="btnQaClear">清空</button>
+        </span>
+      </div>
+      <div class="qa-chips" id="qaChips"></div>
+      <div class="qa-list hidden" id="qaList"></div>
+      <div class="muted small" id="qaEmpty">还没有追问。点上面一个问题，或自己写一句。</div>
+      <div class="qa-input">
+        <textarea class="textarea" id="qaText" rows="2" maxlength="300"
+          placeholder="例如：第三段为什么说是「流水账」？帮我改一句看看"></textarea>
+        <div class="qa-btns">
+          <button class="btn primary" id="btnAsk">发送</button>
+          <button class="btn ghost hidden" id="btnAskStop">✕ 停止</button>
+        </div>
+      </div>
+      <div class="muted small">追问也走 AI 接口，会消耗一点额度。</div>
+    </div>
+      </div><!-- /col-right -->
+    </div><!-- /detail-cols -->
+  </section>
+
+  <!-- ========== 设置 ========== -->
+  <section class="view hidden" id="view-cfg">
+    <div class="detail-head">
+      <button class="btn ghost" id="btnBackCfg">‹ 返回</button>
+    </div>
+    <div class="card">
+      <label class="lbl">API 配置（可存多套，点「启用」切换）</label>
+      <div class="profile-list" id="cfgProfiles"></div>
+      <button class="btn ghost wide mt" id="btnAddCfg">＋ 把下面这套存为新配置</button>
+
+      <label class="lbl mt">快速选择 API</label>
+      <select class="input" id="cfgPreset">
+        <option value="">自定义（自己填地址和模型）</option>
+        <option value="mimo">小米 mimo</option>
+        <option value="deepseek">DeepSeek</option>
+        <option value="qwen">通义千问</option>
+      </select>
+      <label class="lbl mt">配置名称</label>
+      <input class="input" id="cfgName" placeholder="比如：学校用 DeepSeek">
+      <label class="lbl mt">AI 接口地址</label>
+      <input class="input" id="cfgUrl" placeholder="https://api.deepseek.com/v1">
+      <label class="lbl mt">模型名</label>
+      <input class="input" id="cfgModel" placeholder="deepseek-chat">
+      <label class="lbl mt">API Key</label>
+      <input class="input" id="cfgKey" type="password" placeholder="sk-...">
+      <div class="muted small mt" id="cfgHint"></div>
+      <label class="lbl mt">改卷模式</label>
+      <div class="mode-row">
+        <label><input type="radio" name="gradeMode" value="fast" checked> ⚡ 快速（约 15 秒）</label>
+        <label><input type="radio" name="gradeMode" value="deep"> 🔍 深度（先想后写，更细更慢）</label>
+      </div>
+      <div class="muted small mt">快速：AI 直接评，秒级出结果。深度：AI 先想再批，点评更细，耗时更长。</div>
+      <label class="lbl mt">评分严格度</label>
+      <div class="mode-row">
+        <label><input type="radio" name="gradeStrict" value="strict" checked> 🎯 严格（按中考真实尺度，推荐）</label>
+        <label><input type="radio" name="gradeStrict" value="standard"> 🙂 标准（给分宽松些）</label>
+      </div>
+      <div class="muted small mt">严格：一类文只给真正的尖子作文，普通作文落在三类（42~48），更接近考场给分。标准：原来的宽松口径。</div>
+
+      <button class="btn primary wide mt" id="btnSaveCfg">保存设置</button>
+      <div class="muted small center mt">
+        没填 Key 也能用：作文会存为「待批改」，让 AI 助手直接读项目文件夹批改。
+      </div>
+    </div>
+
+    <div class="card">
+      <label class="lbl">🔒 访问口令</label>
+      <div class="muted small">整个网站的进入口令（首次运行 setup.sh 时已设置）。</div>
+      <input class="input mt" id="cfgNewPw" type="password" placeholder="新口令（不能为空）"
+             autocomplete="new-password">
+      <button class="btn ghost wide mt" id="btnSavePw">改口令</button>
+      <div class="muted small mt">改完下次访问要输新口令。想换口令也可以在终端跑 <code>sh setup.sh</code>。</div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/static/js/app.js?v=20261018b"></script>
+</body>
+</html>
