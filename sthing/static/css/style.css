@@ -1,0 +1,408 @@
+:root{
+  --bg:#f7f7f5; --card:#fff; --fg:#1f1f1f; --muted:#8a8a86;
+  --line:#e6e6e2; --brand:#2f6df6; --brand-fg:#fff;
+  --ok:#1f9d55; --warn:#d9822b; --danger:#d64545;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.05),0 6px 20px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#131313; --card:#1d1d1f; --fg:#ececec; --muted:#8e8e93;
+    --line:#2c2c2e; --brand:#4b86ff; --brand-fg:#fff;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3);
+  }
+}
+/* 曾经的 html[data-theme="dark"/"light"] 规则已删（2026-09-25）：代码里从没人设置
+   data-theme，深浅色完全由上面的 prefers-color-scheme 决定 —— 留着是死代码，
+   还容易让后来人以为有手动换肤开关。 */
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--fg);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.hidden{display:none !important}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.center{text-align:center}
+.mt{margin-top:10px}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px; padding-top:calc(12px + env(safe-area-inset-top));
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--line);
+}
+.brand{font-weight:700;font-size:17px;letter-spacing:.2px}
+.top-actions{display:flex;gap:8px}
+.btn{
+  appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);
+  border-radius:11px;padding:9px 14px;font-size:15px;font-weight:500;cursor:pointer;
+  transition:transform .06s ease,opacity .15s ease;
+}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--brand);color:var(--brand-fg);border-color:transparent}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--brand)}
+.btn.danger{color:var(--danger)}
+.btn.tiny{padding:5px 10px;font-size:13px;border-radius:9px}
+.btn.icon{padding:9px 11px}
+.btn.wide{display:block;width:100%;padding:13px}
+.btn[disabled]{opacity:.5;cursor:default}
+
+main{max-width:860px;margin:0 auto;padding:16px}
+.view{padding-bottom:40px}
+
+/* ---------- 详情页三栏排版 ----------
+   手机/平板：单栏，靠 order 保持原有阅读顺序（题目→照片→正文→批改按钮→成绩→批改意见→修改后全文→追问）
+   桌面 ≥1100px：三栏 —— 中栏放两篇作文（原文 + 修改后全文），
+   左=题目/照片/成绩，右=批改按钮/逐段批注/提分建议/追问（追问卡由 balanceCols 摆到更矮一侧） */
+.detail-cols{display:flex;flex-direction:column}
+.detail-cols>.col{display:contents}
+#promptCard{order:1}
+#imgCard{order:2}
+#textCard{order:3}
+#reviseCard{order:4}
+#scoreArea{order:5}
+#resultArea{order:6}
+#revisedArea{order:7}
+#qaCard{order:8}
+@media (min-width:1100px){
+  body.detail-open main{max-width:1320px}
+  .detail-cols{display:grid;grid-template-columns:320px minmax(0,1fr) 320px;gap:16px;align-items:start}
+  .detail-cols>.col{display:flex;flex-direction:column}
+}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;margin-bottom:14px;box-shadow:var(--shadow);
+}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.lbl{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600}
+.input,.textarea{
+  width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);
+  border-radius:11px;padding:12px;font:inherit;font-size:16px;
+}
+.textarea{resize:vertical;line-height:1.75}
+.input:focus,.textarea:focus{outline:2px solid color-mix(in srgb,var(--brand) 40%,transparent);outline-offset:-1px}
+.count{text-align:right;color:var(--muted);font-size:12px;margin-top:6px}
+.sticky-actions{margin-top:18px}
+
+/* ---------- 列表 ---------- */
+.cards{display:grid;gap:12px}
+.item{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;transition:transform .06s ease;
+}
+.item:active{transform:scale(.99)}
+.item-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.item-title{font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-sub{color:var(--muted);font-size:13px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.tag{
+  font-size:12px;padding:3px 9px;border-radius:999px;font-weight:600;white-space:nowrap;
+  background:color-mix(in srgb,var(--muted) 16%,transparent);color:var(--muted);
+}
+.tag.done{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.tag.pending{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.tag.revising{background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand)}
+.tag.error{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+.empty{text-align:center;color:var(--fg);padding:60px 20px;line-height:2}
+
+/* ---------- 图片 ---------- */
+.pick{display:flex;gap:10px;flex-wrap:wrap}
+/* 文章类别单选的选中态 */
+.pick .btn.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.preview{margin-top:12px;position:relative}
+.preview img{width:100%;border-radius:11px;border:1px solid var(--line);display:block}
+.preview .btn{position:absolute;right:8px;top:8px;background:rgba(0,0,0,.6);color:#fff;border-color:transparent}
+.ocr-bar{margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* ---------- 折叠 ---------- */
+.collapse-head{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+  background:none;border:none;color:var(--fg);font:inherit;font-weight:600;cursor:pointer;padding:0;
+}
+.collapse-head .chev{color:var(--muted);transition:transform .2s ease}
+.collapse-head.open .chev{transform:rotate(180deg)}
+.collapse-body{margin-top:12px}
+.collapse-body img{width:100%;border-radius:11px;border:1px solid var(--line)}
+
+/* ---------- 详情 ---------- */
+.detail-head{display:flex;justify-content:space-between;margin-bottom:10px}
+.essay-title{font-size:22px;margin:6px 0 4px;line-height:1.35}
+.essay-text{white-space:pre-wrap;line-height:2;font-size:16.5px}
+.essay-text p{margin:0 0 1em}
+/* 考试题目：视觉上和学生正文区分开 */
+.prompt-text{font-size:15px;line-height:1.95;background:var(--bg);border:1px dashed var(--line);
+  border-radius:10px;padding:12px 14px;white-space:pre-wrap}
+
+/* ---------- 批改结果 ---------- */
+.score-hero{
+  display:flex;align-items:center;gap:18px;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow);
+}
+.score-num{font-size:46px;font-weight:800;line-height:1;color:var(--brand);font-variant-numeric:tabular-nums}
+.score-num small{font-size:16px;color:var(--muted);font-weight:600}
+.score-meta{flex:1}
+.score-level{font-weight:700;font-size:16px}
+.score-sum{color:var(--muted);font-size:14px;margin-top:6px;line-height:1.6}
+
+.dim-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.dim-name{width:72px;font-size:14px;flex-shrink:0}
+.dim-bar{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.dim-fill{height:100%;background:var(--brand);border-radius:99px;transition:width .5s ease}
+.dim-val{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;width:52px;text-align:right}
+.dim-comment{font-size:13px;color:var(--muted);margin:-6px 0 12px 82px}
+
+/* ---- 四维度等第（档次制，不是进度条） ---- */
+.dim-row2{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.dim-name2{width:56px;font-size:15px;font-weight:600;flex-shrink:0}
+.lvl{font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:.3px}
+.lvl.l1{background:#dff3e6;color:#137a42}
+.lvl.l2{background:#e2eefb;color:#1c62b8}
+.lvl.l3{background:#fdf1d8;color:#a06a12}
+.lvl.l4{background:#fde6d8;color:#b4551c}
+.lvl.l5{background:#fbe0e0;color:#b13232}
+
+/* ---- 扣分明细 ---- */
+.ded-flow{font-size:14px;margin-bottom:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ded-flow b{color:var(--fg);font-size:17px}
+.ded-flow b.final{color:var(--brand)}
+.ded-flow .arrow{margin:0 6px;opacity:.55}
+.ded-row{display:flex;justify-content:space-between;align-items:baseline;
+  padding:7px 0;border-top:1px dashed var(--line);font-size:14px}
+.ded-pts{color:var(--danger);font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
+.ded-row + .dim-comment{margin:0 0 8px}
+
+.on-topic{font-size:14.5px;line-height:1.85}
+.on-topic b{color:var(--brand)}
+.warn{color:var(--warn);font-weight:600}
+.range{font-size:12.5px;color:var(--muted);font-weight:600;
+  background:var(--bg);padding:2px 8px;border-radius:99px;margin-left:6px}
+
+.para-block{border-left:3px solid var(--line);padding-left:12px;margin-bottom:16px}
+.para-quote{font-weight:600;font-size:14px;margin-bottom:6px}
+.note{font-size:14.5px;line-height:1.7;margin:4px 0}
+.note b{font-weight:700}
+.note.good b{color:var(--ok)}
+.note.improve b{color:var(--warn)}
+.note.risk b{color:var(--danger)}
+
+.sug{display:flex;gap:9px;margin-bottom:10px;font-size:15px;line-height:1.65}
+.sug-i{
+  flex-shrink:0;width:21px;height:21px;border-radius:50%;background:var(--brand);color:#fff;
+  font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:3px;
+}
+.revised{white-space:pre-wrap;line-height:2;font-size:16.5px}
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed;left:50%;bottom:32px;transform:translateX(-50%);
+  background:rgba(0,0,0,.86);color:#fff;padding:11px 20px;border-radius:12px;
+  font-size:14px;z-index:99;max-width:86vw;text-align:center;
+}
+/* spinner：默认用主题色 —— ⚠️ 原来是白色，在浅色气泡/提示条上完全隐形，
+   用户会以为「点了没反应」。只有 .btn（蓝底）里才用白色那款。 */
+.loading{display:inline-block;width:14px;height:14px;border:2px solid var(--line);
+  border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+.btn .loading{border-color:rgba(255,255,255,.4);border-top-color:#fff}
+.qa-thinking{color:var(--muted);font-size:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- 大屏 ---------- */
+@media (min-width:760px){
+  main{max-width:860px;padding:24px}
+  .cards{grid-template-columns:1fr 1fr}
+  .essay-title{font-size:26px}
+  .sticky-actions{position:static}
+}
+/* ===== 多页作文纸 ===== */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px}
+.page-item{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg)}
+.page-item img{display:block;width:100%;aspect-ratio:3/4;object-fit:cover}
+.page-tag{position:absolute;left:0;top:0;background:rgba(20,26,48,.72);color:#fff;
+  font-size:11px;padding:3px 8px;border-bottom-right-radius:8px;letter-spacing:.3px}
+.page-del{position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:50%;
+  border:none;background:rgba(220,38,38,.88);color:#fff;font-size:16px;line-height:22px;
+  cursor:pointer;padding:0}
+.page-del:hover{background:#dc2626}
+
+/* ===== Word（.docx）上传 ===== */
+.docx-box{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:11px;background:var(--card)}
+.docx-ico{font-size:18px;line-height:1}
+.docx-name{flex:1 1 auto;min-width:0;font-size:14px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.docx-box .btn{flex:0 0 auto}
+/* 详情页字数行里的小标记 */
+.docx-badge{color:var(--muted)}
+
+/* 详情页大图 */
+.pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.page-shot img{display:block;width:100%;border:1px solid var(--line);border-radius:8px}
+.page-shot .page-tag{position:static;display:inline-block;margin-bottom:6px;border-radius:6px}
+
+.card.soft{background:var(--bg);border-style:dashed}
+.note-hint{font-size:14px;line-height:1.75;color:var(--muted)}
+.note-hint b{color:var(--fg)}
+
+/* 详情页图片容器 */
+#dImages{margin-top:4px}
+#dPromptImage,#promptPreview{max-width:100%;border-radius:8px;border:1px solid var(--line)}
+
+/* ================= 标红批注 =================
+   ⚠️ 高亮色必须浅/深两套都给：默认值给浅色，深色在下面的
+   @media(prefers-color-scheme:dark) 里覆盖。 */
+:root{
+  --hl-bg:rgba(214,69,69,.15);
+  --hl-bg-strong:rgba(214,69,69,.30);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --hl-bg:rgba(232,93,93,.22); --hl-bg-strong:rgba(232,93,93,.40); }
+}
+
+.head-actions{display:flex;gap:6px;align-items:center;flex:0 0 auto}
+.edit-actions{display:flex;gap:8px;margin:10px 0}
+.mb{margin-bottom:10px}
+
+/* 按钮文案绝不换行：卡片头窄时让**标签文字**去折行，
+   而不是把「批注 (2)」挤成「批/注(2)」两行。 */
+.btn{white-space:nowrap}
+.head-actions .btn{flex:0 0 auto}
+@media (max-width:560px){
+  .card-head{flex-wrap:wrap;row-gap:4px}
+  .card-head .lbl{margin-bottom:0;min-width:0}
+}
+
+.essay-text mark.hl{
+  background:var(--hl-bg); color:var(--fg);
+  border-bottom:2px solid var(--danger);
+  border-radius:3px; padding:1px 2px; margin:0 -1px;
+  cursor:pointer;
+  transition:background .15s ease;
+}
+.essay-text mark.hl:hover,
+.essay-text mark.hl:active{ background:var(--hl-bg-strong); }
+
+/* 关掉批注：不摘标签、只还原样式（摘掉会导致 DOM 重排闪一下） */
+.essay-text.ann-off mark.hl{
+  background:none; color:inherit; border-bottom:0;
+  padding:0; margin:0; cursor:default;
+}
+
+.btn.ghost.on{background:var(--hl-bg);color:var(--danger)}
+
+/* 批注面板：固定放在正文下方，**不用浮层** —— 浮层会盖住后面的标红句子 */
+.ann-panel{
+  margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);
+  display:flex;flex-direction:column;gap:10px;
+}
+.ann-card{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--hl-bg);border-radius:11px;padding:11px 12px;
+  border-left:3px solid var(--danger);
+  transition:background .25s ease,box-shadow .25s ease;
+}
+.ann-card.cur{box-shadow:0 0 0 2px var(--danger)}
+.ann-card.flash{animation:annflash 1.1s ease}
+@keyframes annflash{
+  0%{background:var(--hl-bg-strong)}
+  100%{background:var(--hl-bg)}
+}
+.ann-i{
+  flex:0 0 22px;height:22px;line-height:22px;text-align:center;
+  background:var(--danger);color:#fff;border-radius:50%;
+  font-size:12px;font-weight:700;margin-top:1px;
+}
+.ann-body{min-width:0;flex:1}
+.ann-quote{
+  font-size:15px;font-weight:600;color:var(--danger);
+  margin-bottom:4px;word-break:break-word;
+}
+.ann-line{margin:4px 0;font-size:14px;line-height:1.7;word-break:break-word}
+.ann-line b{color:var(--muted);font-weight:600}
+.ann-line.sug b{color:var(--ok)}
+
+/* 版本历史样式已移除（2026-09-25 用户要求删掉该功能） */
+
+/* ---------- 继续追问（批改后接着问） ---------- */
+.qa-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{
+  appearance:none;border:1px solid var(--line);background:var(--bg);color:var(--fg);
+  border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;
+  max-width:100%;text-align:left;line-height:1.4;
+}
+.chip:active{transform:scale(.98)}
+.qa-list{display:flex;flex-direction:column;gap:14px}
+.qa-item{display:flex;flex-direction:column;gap:8px}
+.qa-q{display:flex;gap:8px;align-items:flex-start}
+.qa-who{
+  flex:0 0 22px;height:22px;line-height:22px;text-align:center;border-radius:50%;
+  background:var(--brand);color:var(--brand-fg);font-size:12px;font-weight:700;margin-top:2px;
+}
+.qa-qtext{font-size:15px;font-weight:600;word-break:break-word;min-width:0}
+/* 回答是模型吐的纯文本：靠 pre-wrap 保留换行，前端不做 markdown 渲染 */
+.qa-a{
+  background:var(--bg);border:1px solid var(--line);border-radius:12px;
+  padding:11px 12px;font-size:15px;line-height:1.75;
+  white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;
+}
+.qa-a.live{border-style:dashed}
+.qa-input{margin-top:12px}
+.qa-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+
+/* ---- 设置：API 配置多套（存档 / 切换） ---- */
+.profile-list{margin-top:8px}
+.pf-row{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:8px;
+  border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.pf-row.on{border-color:var(--brand);background:rgba(47,109,246,.06)}
+.pf-main{flex:1;min-width:0}
+.pf-tag{color:var(--brand);font-size:12px;white-space:nowrap}
+.pf-row .btn{padding:6px 10px;font-size:13px}
+
+/* ---------- AI 学情分析 ---------- */
+.list-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.analyze-loading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:60px 20px}
+.analyze-loading .spinner{width:36px;height:36px;border:3px solid var(--line);
+  border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite}
+.analyze-error{background:color-mix(in srgb,var(--danger) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--danger) 30%,transparent);
+  color:var(--danger);border-radius:12px;padding:14px 16px;margin-bottom:14px;
+  font-size:15px;line-height:1.6}
+.an-item{padding:12px 0;border-top:1px dashed var(--line)}
+.an-item:first-child{border-top:none;padding-top:0}
+.an-item-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.an-badge{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--brand);
+  color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.an-badge.good{background:var(--ok)}
+.an-badge.warn{background:var(--warn);font-size:14px}
+.an-freq{font-size:12px;color:var(--muted);background:var(--bg);
+  padding:2px 8px;border-radius:99px;margin-left:auto}
+.an-score{font-size:13px;font-weight:700;color:var(--brand);margin-left:auto;
+  font-variant-numeric:tabular-nums}
+.an-detail{font-size:14.5px;line-height:1.7;color:var(--fg);margin-bottom:4px}
+.an-fix{font-size:14px;line-height:1.65;color:var(--muted);
+  background:var(--bg);border-radius:9px;padding:8px 10px;margin-top:6px}
+.an-item.an-good .an-detail{color:var(--ok)}
+.an-item.an-warn .an-detail{color:var(--warn)}
+.an-tips{margin:0;padding-left:20px;font-size:15px;line-height:1.8}
+.an-tips li{margin-bottom:6px}
+
+/* ---------- 登录遮罩 ---------- */
+.login-overlay{position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.login-overlay.hidden{display:none}
+.login-box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);
+  border-radius:20px;padding:40px 32px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.login-icon{font-size:48px;margin-bottom:12px}
+.login-title{font-size:24px;font-weight:800;margin:0 0 6px;color:var(--fg)}
+.login-sub{font-size:15px;color:var(--muted);margin:0 0 24px}
+.login-input{font-size:17px;text-align:center;letter-spacing:4px;margin-bottom:8px}
+.login-error{font-size:14px;color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,transparent);
+  border-radius:10px;padding:8px 12px;margin-bottom:10px}
+.login-box .btn{margin-top:8px;height:48px;font-size:16px}

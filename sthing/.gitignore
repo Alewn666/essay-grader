@@ -1,0 +1,22 @@
+# 运行时生成 —— 绝不能进 git
+#   里面是学生作文、上传的照片、你的 API Key 和口令哈希
+data/
+
+# 虚拟环境
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# 会话笔记（开发期临时，不属于项目）
+*_TODO.md
